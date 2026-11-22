@@ -34,6 +34,11 @@
 
         </activity>
 
+        <service
+            android:name="com.capawesome.capacitor.androidforegroundservice.ForegroundService"
+            android:foregroundServiceType="microphone"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

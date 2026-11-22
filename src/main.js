@@ -6,7 +6,7 @@ import confetti from 'canvas-confetti';
 // State Management & DOM Elements
 const detector = new ClapDetector({
   sensitivity: 75,
-  mode: 'double',
+  mode: 'triple', // Minimum 3 claps
   distancePreset: '20ft'
 });
 

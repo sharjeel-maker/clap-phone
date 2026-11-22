@@ -5,7 +5,7 @@
 export class ClapDetector {
   constructor(options = {}) {
     this.sensitivity = options.sensitivity || 75; // 0 - 100
-    this.mode = options.mode || 'double'; // 'single' or 'double'
+    this.mode = options.mode || 'triple'; // Default to 3 claps minimum
     this.distancePreset = options.distancePreset || '20ft'; // '5ft', '10ft', '20ft'
     
     this.onClapDetected = options.onClapDetected || (() => {});
@@ -164,8 +164,7 @@ export class ClapDetector {
 
         if (this.mode === 'single') {
           this.onClapDetected({ time: now, count: 1 });
-        } else {
-          // Double clap detection logic (within 1200ms)
+        } else if (this.mode === 'double') {
           this.clapCount++;
           if (this.clapCount === 1) {
             clearTimeout(this.clapWindowTimer);
@@ -176,6 +175,19 @@ export class ClapDetector {
             clearTimeout(this.clapWindowTimer);
             this.clapCount = 0;
             this.onClapDetected({ time: now, count: 2 });
+          }
+        } else {
+          // Triple clap minimum detection logic (3 claps within 1600ms window)
+          this.clapCount++;
+          if (this.clapCount === 1) {
+            clearTimeout(this.clapWindowTimer);
+            this.clapWindowTimer = setTimeout(() => {
+              this.clapCount = 0;
+            }, 1600);
+          } else if (this.clapCount >= 3) {
+            clearTimeout(this.clapWindowTimer);
+            this.clapCount = 0;
+            this.onClapDetected({ time: now, count: 3 });
           }
         }
       }
