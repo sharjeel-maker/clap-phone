@@ -79,13 +79,13 @@ function addLog(message, type = 'info') {
   logFeed.insertBefore(item, logFeed.firstChild);
 }
 
-// Clap Detection Trigger Callback
-detector.onPeakDetected = (peak, par) => {
-  addLog(`Transient peak detected (${(peak * 100).toFixed(0)}%)`, 'clap');
+// Whistle Detection Trigger Callback
+detector.onPeakDetected = (peak, freq) => {
+  addLog(`🎵 Whistle pitch detected (${freq} Hz)`, 'clap');
 };
 
 detector.onClapDetected = (data) => {
-  addLog(`👏 CLAP DETECTED! (${data.count} clap trigger)`, 'trigger');
+  addLog(`😗🎶 WHISTLE DETECTED! (${data.freq} Hz tone)`, 'trigger');
   triggerAlarm();
 };
 
@@ -96,9 +96,9 @@ keepAlive.onNotificationAction(() => {
     keepAlive.releaseWakeLock();
     
     orbWrapper.classList.remove('listening');
-    statusTitle.textContent = 'Listening Disabled';
-    statusDesc.textContent = 'Turn on listener and place phone in your room. When you clap, phone will ring loudly.';
-    btnLabel.textContent = 'ACTIVATE CLAP FINDER';
+    statusTitle.textContent = 'Whistle Listener Disabled';
+    statusDesc.textContent = 'Turn on listener and leave phone in your room. When you whistle, phone will ring loudly.';
+    btnLabel.textContent = 'ACTIVATE WHISTLE FINDER';
     statusBadge.textContent = 'Standby';
     statusBadge.className = 'badge';
     addLog('Listening stopped from background notification.');
@@ -117,26 +117,26 @@ toggleBtn.addEventListener('click', async () => {
     keepAlive.releaseWakeLock();
     
     orbWrapper.classList.remove('listening');
-    statusTitle.textContent = 'Listening Disabled';
-    statusDesc.textContent = 'Turn on listener and place phone in your room. When you clap, phone will ring loudly.';
-    btnLabel.textContent = 'ACTIVATE CLAP FINDER';
+    statusTitle.textContent = 'Whistle Listener Disabled';
+    statusDesc.textContent = 'Turn on listener and leave phone in your room. When you whistle, phone will ring loudly.';
+    btnLabel.textContent = 'ACTIVATE WHISTLE FINDER';
     statusBadge.textContent = 'Standby';
     statusBadge.className = 'badge';
-    addLog('Listening stopped.');
+    addLog('Whistle listener deactivated.');
   } else {
     try {
       await detector.start();
       await keepAlive.requestWakeLock();
       
       orbWrapper.classList.add('listening');
-      statusTitle.textContent = 'Actively Listening in Background';
-      statusDesc.textContent = `Monitoring room acoustics (${detector.distancePreset} range). You can lock screen now!`;
-      btnLabel.textContent = 'DEACTIVATE CLAP FINDER';
-      statusBadge.textContent = 'Active Background Monitoring';
+      statusTitle.textContent = 'Listening for Whistle...';
+      statusDesc.textContent = 'Whistle loudly from anywhere in your room to trigger alarm siren.';
+      btnLabel.textContent = 'DEACTIVATE WHISTLE FINDER';
+      statusBadge.textContent = 'Active & Listening';
       statusBadge.className = 'badge active';
-      addLog(`Mic active (${detector.distancePreset} gain). Background service started.`);
+      addLog(`AI Whistle listener active (${detector.distancePreset} range). Background service started.`);
     } catch (err) {
-      alert('Microphone access is required for clap detection. Please allow permissions.');
+      alert('Microphone access is required for whistle detection. Please allow permissions.');
       addLog('Error: Microphone permission denied.', 'trigger');
     }
   }
