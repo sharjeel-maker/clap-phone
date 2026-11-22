@@ -1,0 +1,22 @@
+{
+  "name": "clap-phone",
+  "version": "1.0.0",
+  "description": "Clap Phone Finder - Detect claps up to 20ft to find your phone",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sharjeel-maker/clap-phone.git"
+  },
+  "keywords": ["clap-finder", "phone-finder", "audio-dsp", "web-audio"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "canvas-confetti": "^1.9.4",
+    "vite": "^6.2.0"
+  }
+}
