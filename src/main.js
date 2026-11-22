@@ -89,6 +89,22 @@ detector.onClapDetected = (data) => {
   triggerAlarm();
 };
 
+// Listen for notification action click to stop listening from background notification
+keepAlive.onNotificationAction(() => {
+  if (detector.isListening) {
+    detector.stop();
+    keepAlive.releaseWakeLock();
+    
+    orbWrapper.classList.remove('listening');
+    statusTitle.textContent = 'Listening Disabled';
+    statusDesc.textContent = 'Turn on listener and place phone in your room. When you clap, phone will ring loudly.';
+    btnLabel.textContent = 'ACTIVATE CLAP FINDER';
+    statusBadge.textContent = 'Standby';
+    statusBadge.className = 'badge';
+    addLog('Listening stopped from background notification.');
+  }
+});
+
 // Start / Stop Listening Logic
 toggleBtn.addEventListener('click', async () => {
   if (isAlarming) {
@@ -103,7 +119,7 @@ toggleBtn.addEventListener('click', async () => {
     orbWrapper.classList.remove('listening');
     statusTitle.textContent = 'Listening Disabled';
     statusDesc.textContent = 'Turn on listener and place phone in your room. When you clap, phone will ring loudly.';
-    btnLabel.textContent = 'TAP TO START';
+    btnLabel.textContent = 'ACTIVATE CLAP FINDER';
     statusBadge.textContent = 'Standby';
     statusBadge.className = 'badge';
     addLog('Listening stopped.');
@@ -113,12 +129,12 @@ toggleBtn.addEventListener('click', async () => {
       await keepAlive.requestWakeLock();
       
       orbWrapper.classList.add('listening');
-      statusTitle.textContent = 'Actively Listening for Claps...';
-      statusDesc.textContent = `Monitoring room acoustics (${detector.distancePreset} range). Clap clearly to trigger alarm.`;
-      btnLabel.textContent = 'LISTENING';
-      statusBadge.textContent = 'Active Monitoring';
+      statusTitle.textContent = 'Actively Listening in Background';
+      statusDesc.textContent = `Monitoring room acoustics (${detector.distancePreset} range). You can lock screen now!`;
+      btnLabel.textContent = 'DEACTIVATE CLAP FINDER';
+      statusBadge.textContent = 'Active Background Monitoring';
       statusBadge.className = 'badge active';
-      addLog(`Mic active (${detector.distancePreset} gain). Listening for claps...`);
+      addLog(`Mic active (${detector.distancePreset} gain). Background service started.`);
     } catch (err) {
       alert('Microphone access is required for clap detection. Please allow permissions.');
       addLog('Error: Microphone permission denied.', 'trigger');

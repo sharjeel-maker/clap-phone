@@ -26,5 +26,8 @@
     "@capacitor/core": "^8.6.2",
     "canvas-confetti": "^1.9.4",
     "vite": "^6.2.0"
+  },
+  "dependencies": {
+    "@capawesome-team/capacitor-android-foreground-service": "^8.1.0"
   }
 }
