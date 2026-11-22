@@ -32,8 +32,8 @@ export class ClapDetector {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
+          echoCancellation: true,
+          noiseSuppression: true,
           autoGainControl: true,
         }
       });
@@ -43,24 +43,24 @@ export class ClapDetector {
       
       const source = this.audioCtx.createMediaStreamSource(stream);
       
-      // High sensitivity pre-amp gain for distance pickup (10-20ft)
+      // Gain node tuned for clean pickup
       this.gainNode = this.audioCtx.createGain();
       this.updateDistanceGain();
 
-      // Highpass filter (300 Hz) to reject low rumble while keeping clap resonance
+      // Highpass filter (800 Hz) to eliminate speech, ambient noise, rumbles, and background sounds
       const highPass = this.audioCtx.createBiquadFilter();
       highPass.type = 'highpass';
-      highPass.frequency.value = 300;
+      highPass.frequency.value = 800;
 
-      // Bandpass filter tuned wide for human clapping (800 Hz - 4000 Hz)
+      // Bandpass filter centered strictly around sharp clap frequency (2400 Hz, Q=2.0)
       this.filterNode = this.audioCtx.createBiquadFilter();
       this.filterNode.type = 'bandpass';
-      this.filterNode.frequency.value = 2000;
-      this.filterNode.Q.value = 0.8; // Broader bandwidth to catch distant claps
+      this.filterNode.frequency.value = 2400;
+      this.filterNode.Q.value = 2.0; // Sharp quality factor to filter out non-clap audio
 
       this.analyser = this.audioCtx.createAnalyser();
       this.analyser.fftSize = 512;
-      this.analyser.smoothingTimeConstant = 0.05; // Ultra-fast response for instant transient spikes
+      this.analyser.smoothingTimeConstant = 0.1;
 
       // Connect pipeline: source -> gain -> highPass -> bandpass -> analyser
       source.connect(this.gainNode);
@@ -147,18 +147,17 @@ export class ClapDetector {
     this.onAudioData(timeData, peak, rms);
 
     // Calculate dynamic threshold based on sensitivity slider (0-100)
-    // Higher sensitivity = lower threshold multiplier for long-range detection
     const sensFactor = (105 - this.sensitivity) / 100;
-    const thresholdPeak = 0.18 * sensFactor; // Calibrated sensitivity for distant claps (10-20ft)
-    const minPAR = 2.4; // PAR threshold for sharp claps
+    const thresholdPeak = 0.42 * sensFactor; // Requires strong transient spike (real clap)
+    const minPAR = 4.2; // Real claps have extremely sharp PAR ratio (> 4.2), continuous noise/talking is < 2.5
 
     const now = Date.now();
-    const isGracePeriod = (now - (this.startTime || 0)) < 400; // 400ms activation grace period
+    const isGracePeriod = (now - (this.startTime || 0)) < 1000; // 1000ms activation grace period
 
     // Check transient clap signature (only process if alarm is not actively ringing and past grace period)
     if (!this.isAlarming && !isGracePeriod && peak > thresholdPeak && par > minPAR) {
-      // Debounce rapid multi-frames of same clap (must be > 120ms apart)
-      if (now - this.lastClapTime > 120) {
+      // Debounce rapid multi-frames of same clap (must be > 180ms apart)
+      if (now - this.lastClapTime > 180) {
         this.lastClapTime = now;
         this.onPeakDetected(peak, par);
 
@@ -177,13 +176,13 @@ export class ClapDetector {
             this.onClapDetected({ time: now, count: 2 });
           }
         } else {
-          // Triple clap detection logic (3 claps within 2500ms window)
+          // Triple clap detection logic (3 distinct claps within 2000ms window)
           this.clapCount++;
           if (this.clapCount === 1) {
             clearTimeout(this.clapWindowTimer);
             this.clapWindowTimer = setTimeout(() => {
               this.clapCount = 0;
-            }, 2500);
+            }, 2000);
           } else if (this.clapCount >= 3) {
             clearTimeout(this.clapWindowTimer);
             this.clapCount = 0;
