@@ -108,17 +108,17 @@ export class ClapDetector {
 
   updateDistanceGain() {
     if (!this.gainNode) return;
-    // Boost gain for farther distance
+    // Calibrated pre-amp gain levels
     switch (this.distancePreset) {
       case '5ft':
-        this.gainNode.gain.value = 1.5;
+        this.gainNode.gain.value = 1.0;
         break;
       case '10ft':
-        this.gainNode.gain.value = 3.0;
+        this.gainNode.gain.value = 1.6;
         break;
       case '20ft':
       default:
-        this.gainNode.gain.value = 5.5; // High gain for 20ft acoustics
+        this.gainNode.gain.value = 2.4; // 2.4x gain provides long-range pickup without saturating noise
         break;
     }
   }
