@@ -32,9 +32,9 @@ export class ClapDetector {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: false,
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: true,
         }
       });
       
@@ -47,20 +47,20 @@ export class ClapDetector {
       this.gainNode = this.audioCtx.createGain();
       this.updateDistanceGain();
 
-      // Highpass filter (600 Hz) to reject mechanical handling, surface friction & motion rumble
+      // Highpass filter (300 Hz) to reject low rumble while keeping clap resonance
       const highPass = this.audioCtx.createBiquadFilter();
       highPass.type = 'highpass';
-      highPass.frequency.value = 600;
+      highPass.frequency.value = 300;
 
-      // Bandpass filter tuned for human clapping (800 Hz - 3500 Hz)
+      // Bandpass filter tuned wide for human clapping (800 Hz - 4000 Hz)
       this.filterNode = this.audioCtx.createBiquadFilter();
       this.filterNode.type = 'bandpass';
-      this.filterNode.frequency.value = 2200;
-      this.filterNode.Q.value = 1.5;
+      this.filterNode.frequency.value = 2000;
+      this.filterNode.Q.value = 0.8; // Broader bandwidth to catch distant claps
 
       this.analyser = this.audioCtx.createAnalyser();
       this.analyser.fftSize = 512;
-      this.analyser.smoothingTimeConstant = 0.1; // Fast response for transients
+      this.analyser.smoothingTimeConstant = 0.05; // Ultra-fast response for instant transient spikes
 
       // Connect pipeline: source -> gain -> highPass -> bandpass -> analyser
       source.connect(this.gainNode);
@@ -147,18 +147,18 @@ export class ClapDetector {
     this.onAudioData(timeData, peak, rms);
 
     // Calculate dynamic threshold based on sensitivity slider (0-100)
-    // Higher sensitivity = lower threshold multiplier
+    // Higher sensitivity = lower threshold multiplier for long-range detection
     const sensFactor = (105 - this.sensitivity) / 100;
-    const thresholdPeak = 0.38 * sensFactor; // Calibrated for distinct clap transients
-    const minPAR = 3.4; // Claps have very sharp PAR peaks (> 3.4) to distinguish from movement/rubbing
+    const thresholdPeak = 0.18 * sensFactor; // Calibrated sensitivity for distant claps (10-20ft)
+    const minPAR = 2.4; // PAR threshold for sharp claps
 
     const now = Date.now();
-    const isGracePeriod = (now - (this.startTime || 0)) < 800; // Ignore initial 800ms handling/movement transients
+    const isGracePeriod = (now - (this.startTime || 0)) < 400; // 400ms activation grace period
 
     // Check transient clap signature (only process if alarm is not actively ringing and past grace period)
     if (!this.isAlarming && !isGracePeriod && peak > thresholdPeak && par > minPAR) {
-      // Debounce rapid multi-frames of same clap (must be > 150ms apart)
-      if (now - this.lastClapTime > 150) {
+      // Debounce rapid multi-frames of same clap (must be > 120ms apart)
+      if (now - this.lastClapTime > 120) {
         this.lastClapTime = now;
         this.onPeakDetected(peak, par);
 
@@ -170,20 +170,20 @@ export class ClapDetector {
             clearTimeout(this.clapWindowTimer);
             this.clapWindowTimer = setTimeout(() => {
               this.clapCount = 0;
-            }, 1200);
+            }, 1500);
           } else if (this.clapCount >= 2) {
             clearTimeout(this.clapWindowTimer);
             this.clapCount = 0;
             this.onClapDetected({ time: now, count: 2 });
           }
         } else {
-          // Triple clap minimum detection logic (3 claps within 1600ms window)
+          // Triple clap detection logic (3 claps within 2500ms window)
           this.clapCount++;
           if (this.clapCount === 1) {
             clearTimeout(this.clapWindowTimer);
             this.clapWindowTimer = setTimeout(() => {
               this.clapCount = 0;
-            }, 1600);
+            }, 2500);
           } else if (this.clapCount >= 3) {
             clearTimeout(this.clapWindowTimer);
             this.clapCount = 0;
