@@ -222,14 +222,14 @@ document.getElementById('distanceGroup').addEventListener('click', (e) => {
   }
 });
 
-// Pattern Mode Group
-document.getElementById('modeGroup').addEventListener('click', (e) => {
+// Single Frequency Tuning Group
+document.getElementById('freqGroup').addEventListener('click', (e) => {
   if (e.target.classList.contains('btn-option')) {
-    document.querySelectorAll('#modeGroup .btn-option').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('#freqGroup .btn-option').forEach(b => b.classList.remove('selected'));
     e.target.classList.add('selected');
-    const mode = e.target.dataset.mode;
-    detector.setMode(mode);
-    addLog(`Clap pattern mode: ${mode === 'double' ? 'Double Clap' : 'Single Clap'}`);
+    const freq = e.target.dataset.freq;
+    detector.setTargetFreq(freq);
+    addLog(`Target whistle frequency set to: ${freq} Hz`);
   }
 });
 

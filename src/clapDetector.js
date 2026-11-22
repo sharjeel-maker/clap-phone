@@ -1,12 +1,13 @@
 /**
- * AI Machine-Learning Pitch & Harmonics Whistle Classifier
- * Uses Real-Time Spectrogram Harmonic Peak Analysis (Fundamental pitch 1400-2800 Hz)
- * Strictly verifies audio harmonics so it ONLY triggers on authentic human whistles.
+ * AI Ultra-Precision Whistle & Single-Frequency Classifier
+ * Isolates single peak pitch target (e.g. ~1800 Hz pitch tone) with high spectral purity (> 0.25).
+ * Prevents false positives from ambient noise or small sounds.
  */
 export class ClapDetector {
   constructor(options = {}) {
     this.sensitivity = options.sensitivity || 75;
-    this.mode = options.mode || 'whistle';
+    this.targetFreq = options.targetFreq || 1800; // Target single whistle frequency bin (Hz)
+    this.freqTolerance = options.freqTolerance || 250; // Allowed variance: +/- 250 Hz (1550 - 2050 Hz)
     this.distancePreset = options.distancePreset || '20ft';
     
     this.onClapDetected = options.onClapDetected || (() => {});
@@ -34,7 +35,7 @@ export class ClapDetector {
         audio: {
           echoCancellation: false,
           noiseSuppression: false,
-          autoGainControl: true,
+          autoGainControl: false, // Turn off AGC to avoid amplifying background whispers/small sounds
         }
       });
       
@@ -47,8 +48,8 @@ export class ClapDetector {
       this.updateDistanceGain();
 
       this.analyser = this.audioCtx.createAnalyser();
-      this.analyser.fftSize = 2048;
-      this.analyser.smoothingTimeConstant = 0.2;
+      this.analyser.fftSize = 4096; // Higher FFT resolution (~10.7 Hz per bin at 44.1kHz)
+      this.analyser.smoothingTimeConstant = 0.3;
 
       source.connect(this.gainNode);
       this.gainNode.connect(this.analyser);
@@ -59,7 +60,7 @@ export class ClapDetector {
       this._processAudioLoop();
       return true;
     } catch (err) {
-      console.error('Failed to start Whistle Classifier:', err);
+      console.error('Failed to start Ultra-Precision Whistle Classifier:', err);
       throw err;
     }
   }
@@ -82,8 +83,8 @@ export class ClapDetector {
     this.sensitivity = Number(val);
   }
 
-  setMode(mode) {
-    this.mode = mode;
+  setTargetFreq(freq) {
+    this.targetFreq = Number(freq);
   }
 
   setDistancePreset(preset) {
@@ -95,14 +96,14 @@ export class ClapDetector {
     if (!this.gainNode) return;
     switch (this.distancePreset) {
       case '5ft':
-        this.gainNode.gain.value = 1.0;
+        this.gainNode.gain.value = 0.8;
         break;
       case '10ft':
-        this.gainNode.gain.value = 1.4;
+        this.gainNode.gain.value = 1.0;
         break;
       case '20ft':
       default:
-        this.gainNode.gain.value = 2.0;
+        this.gainNode.gain.value = 1.2;
         break;
     }
   }
@@ -130,7 +131,7 @@ export class ClapDetector {
     this.onAudioData(timeData, peak, rms);
 
     const now = Date.now();
-    const isGracePeriod = (now - (this.startTime || 0)) < 1200;
+    const isGracePeriod = (now - (this.startTime || 0)) < 1500;
 
     if (!this.isAlarming && !isGracePeriod) {
       const sampleRate = this.audioCtx.sampleRate;
@@ -152,22 +153,27 @@ export class ClapDetector {
       const peakFreq = maxBin * binSize;
       const peakRatio = totalEnergy > 0 ? (maxEnergy / totalEnergy) : 0;
       
-      const sensFactor = (105 - this.sensitivity) / 100;
-      const minEnergyThreshold = 100 * sensFactor;
+      // Sensitivity thresholding
+      const sensFactor = (100 - this.sensitivity) / 100;
+      const minEnergyThreshold = 140 + (sensFactor * 60); // Requires strong clear signal (140-200 amplitude out of 255)
 
-      // Pure Whistle signature: Fundamental pitch (1400-2800 Hz) with concentrated peak (> 0.12 total spectral energy)
-      const isWhistleFreq = peakFreq >= 1400 && peakFreq <= 2800;
-      const isWhistleEnergy = maxEnergy > minEnergyThreshold;
-      const isPureWhistleTone = peakRatio > 0.12;
+      // Strict Single Frequency Match (Target: 1800 Hz +/- 250 Hz -> 1550Hz to 2050Hz)
+      const minFreq = this.targetFreq - this.freqTolerance;
+      const maxFreq = this.targetFreq + this.freqTolerance;
+      const isTargetFrequency = peakFreq >= minFreq && peakFreq <= maxFreq;
 
-      if (isWhistleFreq && isWhistleEnergy && isPureWhistleTone) {
+      // Requires high spectral purity (> 0.25 of total spectrum in single frequency bin)
+      const isPureSingleFrequencyTone = peakRatio >= 0.25;
+      const isAboveNoiseFloor = maxEnergy >= minEnergyThreshold;
+
+      if (isTargetFrequency && isPureSingleFrequencyTone && isAboveNoiseFloor) {
         this.whistleScoreStreak++;
-        this.onPeakDetected(peak, Math.round(peakFreq));
+        this.onPeakDetected(peakRatio, Math.round(peakFreq));
 
-        // Requires continuous whistle tone held for 7 consecutive frames (~160ms)
-        if (this.whistleScoreStreak >= 7) {
+        // Must sustain single tone for 10 continuous frames (~250ms)
+        if (this.whistleScoreStreak >= 10) {
           this.whistleScoreStreak = 0;
-          this.onClapDetected({ time: now, type: 'whistle', freq: Math.round(peakFreq) });
+          this.onClapDetected({ time: now, type: 'single_frequency', freq: Math.round(peakFreq) });
         }
       } else {
         if (this.whistleScoreStreak > 0) {

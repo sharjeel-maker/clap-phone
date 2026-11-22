@@ -80,11 +80,16 @@
         <!-- Detection Mode Card -->
         <div class="glass-card control-item">
           <div class="control-label">
-            <span>Detection Mode</span>
+            <span>Whistle Frequency Tuning</span>
           </div>
-          <div class="btn-group" id="modeGroup">
-            <button class="btn-option selected" data-mode="whistle">Whistle Tone (1400-2800 Hz)</button>
+          <div class="btn-group" id="freqGroup">
+            <button class="btn-option" data-freq="1500">1.5 kHz (Low)</button>
+            <button class="btn-option selected" data-freq="1800">1.8 kHz (Mid)</button>
+            <button class="btn-option" data-freq="2200">2.2 kHz (High)</button>
           </div>
+          <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
+            Target single whistle pitch frequency. Prevents ringing on ambient room sounds.
+          </span>
         </div>
 
         <!-- Alarm Sound Selector -->
