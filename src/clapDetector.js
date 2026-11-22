@@ -32,9 +32,9 @@ export class ClapDetector {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: true,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: false,
         }
       });
       
@@ -47,22 +47,29 @@ export class ClapDetector {
       this.gainNode = this.audioCtx.createGain();
       this.updateDistanceGain();
 
+      // Highpass filter (600 Hz) to reject mechanical handling, surface friction & motion rumble
+      const highPass = this.audioCtx.createBiquadFilter();
+      highPass.type = 'highpass';
+      highPass.frequency.value = 600;
+
       // Bandpass filter tuned for human clapping (800 Hz - 3500 Hz)
       this.filterNode = this.audioCtx.createBiquadFilter();
       this.filterNode.type = 'bandpass';
-      this.filterNode.frequency.value = 2000;
-      this.filterNode.Q.value = 1.2;
+      this.filterNode.frequency.value = 2200;
+      this.filterNode.Q.value = 1.5;
 
       this.analyser = this.audioCtx.createAnalyser();
       this.analyser.fftSize = 512;
       this.analyser.smoothingTimeConstant = 0.1; // Fast response for transients
 
-      // Connect pipeline
+      // Connect pipeline: source -> gain -> highPass -> bandpass -> analyser
       source.connect(this.gainNode);
-      this.gainNode.connect(this.filterNode);
+      this.gainNode.connect(highPass);
+      highPass.connect(this.filterNode);
       this.filterNode.connect(this.analyser);
 
       this.isListening = true;
+      this.startTime = Date.now(); // Activation timestamp for 800ms grace period
       this._processAudioLoop();
       return true;
     } catch (err) {
@@ -142,13 +149,14 @@ export class ClapDetector {
     // Calculate dynamic threshold based on sensitivity slider (0-100)
     // Higher sensitivity = lower threshold multiplier
     const sensFactor = (105 - this.sensitivity) / 100;
-    const thresholdPeak = 0.35 * sensFactor; // Calibrated for distinct clap transients
-    const minPAR = 3.2; // Claps have very sharp PAR peaks (> 3.2) to distinguish from ambient noise/sirens
+    const thresholdPeak = 0.38 * sensFactor; // Calibrated for distinct clap transients
+    const minPAR = 3.4; // Claps have very sharp PAR peaks (> 3.4) to distinguish from movement/rubbing
 
     const now = Date.now();
+    const isGracePeriod = (now - (this.startTime || 0)) < 800; // Ignore initial 800ms handling/movement transients
 
-    // Check transient clap signature (only process if alarm is not actively ringing to prevent self-triggering feedback loop)
-    if (!this.isAlarming && peak > thresholdPeak && par > minPAR) {
+    // Check transient clap signature (only process if alarm is not actively ringing and past grace period)
+    if (!this.isAlarming && !isGracePeriod && peak > thresholdPeak && par > minPAR) {
       // Debounce rapid multi-frames of same clap (must be > 150ms apart)
       if (now - this.lastClapTime > 150) {
         this.lastClapTime = now;
