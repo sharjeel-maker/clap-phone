@@ -170,14 +170,14 @@ export class ClapDetector {
         this.whistleScoreStreak++;
         this.onPeakDetected(peakRatio, Math.round(peakFreq));
 
-        // Must sustain single tone for 10 continuous frames (~250ms)
-        if (this.whistleScoreStreak >= 10) {
+        // Must sustain single 1800Hz whistle tone for 7 full seconds (~280 continuous frames)
+        if (this.whistleScoreStreak >= 280) {
           this.whistleScoreStreak = 0;
           this.onClapDetected({ time: now, type: 'single_frequency', freq: Math.round(peakFreq) });
         }
       } else {
         if (this.whistleScoreStreak > 0) {
-          this.whistleScoreStreak--;
+          this.whistleScoreStreak = Math.max(0, this.whistleScoreStreak - 2); // Fast decay if whistle breaks
         }
       }
     }
