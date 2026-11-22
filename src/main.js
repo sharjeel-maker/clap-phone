@@ -146,6 +146,7 @@ toggleBtn.addEventListener('click', async () => {
 function triggerAlarm() {
   if (isAlarming) return;
   isAlarming = true;
+  detector.isAlarming = true;
 
   alarm.start();
   orbWrapper.classList.add('alarm-active');
@@ -167,6 +168,7 @@ function triggerAlarm() {
 
 function stopAlarm() {
   isAlarming = false;
+  detector.isAlarming = false;
   alarm.stop();
 
   orbWrapper.classList.remove('alarm-active');
@@ -176,12 +178,12 @@ function stopAlarm() {
   stopAlarmBtn.style.display = 'none';
 
   if (detector.isListening) {
-    btnLabel.textContent = 'LISTENING';
-    statusTitle.textContent = 'Actively Listening for Claps...';
-    statusBadge.textContent = 'Active Monitoring';
+    btnLabel.textContent = 'DEACTIVATE CLAP FINDER';
+    statusTitle.textContent = 'Actively Listening in Background';
+    statusBadge.textContent = 'Active Background Monitoring';
     statusBadge.className = 'badge active';
   } else {
-    btnLabel.textContent = 'TAP TO START';
+    btnLabel.textContent = 'ACTIVATE CLAP FINDER';
     statusTitle.textContent = 'Listening Disabled';
     statusBadge.textContent = 'Standby';
     statusBadge.className = 'badge';

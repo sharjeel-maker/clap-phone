@@ -142,13 +142,13 @@ export class ClapDetector {
     // Calculate dynamic threshold based on sensitivity slider (0-100)
     // Higher sensitivity = lower threshold multiplier
     const sensFactor = (105 - this.sensitivity) / 100;
-    const thresholdPeak = 0.25 * sensFactor;
-    const minPAR = 2.4; // Claps have sharp PAR peaks (> 2.5)
+    const thresholdPeak = 0.35 * sensFactor; // Calibrated for distinct clap transients
+    const minPAR = 3.2; // Claps have very sharp PAR peaks (> 3.2) to distinguish from ambient noise/sirens
 
     const now = Date.now();
 
-    // Check transient clap signature
-    if (peak > thresholdPeak && par > minPAR) {
+    // Check transient clap signature (only process if alarm is not actively ringing to prevent self-triggering feedback loop)
+    if (!this.isAlarming && peak > thresholdPeak && par > minPAR) {
       // Debounce rapid multi-frames of same clap (must be > 150ms apart)
       if (now - this.lastClapTime > 150) {
         this.lastClapTime = now;
