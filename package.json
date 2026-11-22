@@ -12,10 +12,18 @@
     "type": "git",
     "url": "git+https://github.com/sharjeel-maker/clap-phone.git"
   },
-  "keywords": ["clap-finder", "phone-finder", "audio-dsp", "web-audio"],
+  "keywords": [
+    "clap-finder",
+    "phone-finder",
+    "audio-dsp",
+    "web-audio"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
     "canvas-confetti": "^1.9.4",
     "vite": "^6.2.0"
   }
